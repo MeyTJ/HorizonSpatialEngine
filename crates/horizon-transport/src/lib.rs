@@ -5,5 +5,8 @@
 
 mod convert;
 mod server;
+mod spatial_compute_convert;
+mod spatial_compute_server;
+mod traceparent;
 
-pub use server::{serve, TransportConfig};
+pub use server::{serve, TransportConfig, TransportServices};

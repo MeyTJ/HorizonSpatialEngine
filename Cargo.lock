@@ -709,6 +709,7 @@ dependencies = [
  "async-trait",
  "horizon-api",
  "horizon-core",
+ "horizon-geometry",
  "horizon-transport",
  "horizon_topology",
  "tokio",

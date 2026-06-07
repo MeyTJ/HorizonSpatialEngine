@@ -3,10 +3,15 @@ use std::sync::{Arc, RwLock};
 
 use async_trait::async_trait;
 use horizon_api::{
-    AccessibilityRequest, AccessibilityResponse, IntersectRequest, IntersectResponse,
-    LoadDatasetRequest, LoadDatasetResponse, ServiceError, SpatialService,
+    AccessibilityRequest, AccessibilityResponse, ApiCoordinate, CalculateHorizonAccessRequest,
+    CalculateHorizonAccessResponse, IntersectRequest, IntersectResponse, LoadDatasetRequest,
+    LoadDatasetResponse, ServiceError, SpatialComputeService, SpatialService,
 };
-use horizon_core::{QueryBounds, SharedSpatialIndex, SpatialEngine, SpatialIndex, SpatialQuery};
+use horizon_core::{
+    calculate_horizon_blockage, CoreError, QueryBounds, SharedSpatialIndex, SpatialEngine,
+    SpatialIndex, SpatialQuery,
+};
+use horizon_geometry::{Coordinate, LineString};
 use tracing::instrument;
 
 /// Bridges the compute core to the transport-agnostic API boundary.
@@ -41,6 +46,26 @@ impl Default for CoreAdapter {
     }
 }
 
+fn map_core_error(err: CoreError) -> ServiceError {
+    match err {
+        CoreError::OutOfBounds => ServiceError::OutOfBounds,
+        CoreError::InvalidCoastline(msg) => ServiceError::InvalidRequest(msg),
+        CoreError::NoDataset => ServiceError::NotLoaded,
+        CoreError::Storage(err) => ServiceError::LoadFailed(err.to_string()),
+        CoreError::IndexBuild(msg) | CoreError::HorizonAnalysis(msg) => {
+            ServiceError::Compute(msg)
+        }
+    }
+}
+
+fn to_coordinate(point: ApiCoordinate) -> Coordinate {
+    Coordinate::new(point.x, point.y, point.z)
+}
+
+fn to_line_string(line: horizon_api::ApiLineString) -> LineString {
+    LineString::new(line.points.into_iter().map(to_coordinate).collect())
+}
+
 #[async_trait]
 impl SpatialService for CoreAdapter {
     #[instrument(skip(self))]
@@ -53,7 +78,8 @@ impl SpatialService for CoreAdapter {
             return Err(ServiceError::InvalidRequest("path must not be empty".into()));
         }
 
-        let index = SpatialIndex::open(&path).map_err(|e| ServiceError::LoadFailed(e.to_string()))?;
+        let index =
+            SpatialIndex::open(&path).map_err(|e| ServiceError::LoadFailed(e.to_string()))?;
 
         let response = LoadDatasetResponse {
             building_count: index.feature_count() as u64,
@@ -126,5 +152,34 @@ impl SpatialService for CoreAdapter {
             }),
             _ => Err(ServiceError::Internal("unexpected query result".into())),
         }
+    }
+}
+
+#[async_trait]
+impl SpatialComputeService for CoreAdapter {
+    #[instrument(skip(self, request))]
+    async fn calculate_horizon_access(
+        &self,
+        request: CalculateHorizonAccessRequest,
+    ) -> Result<CalculateHorizonAccessResponse, ServiceError> {
+        let index = self.snapshot()?;
+        let viewpoint = to_coordinate(request.viewpoint);
+        let coastline = to_line_string(request.target_coastline);
+
+        index
+            .validate_in_dataset_bounds(viewpoint)
+            .map_err(map_core_error)?;
+        index
+            .validate_coastline_in_bounds(&coastline)
+            .map_err(map_core_error)?;
+
+        let result =
+            calculate_horizon_blockage(&index, viewpoint, &coastline).map_err(map_core_error)?;
+
+        Ok(CalculateHorizonAccessResponse {
+            obstruction_percentage: result.obstruction_percentage,
+            rays_cast: result.rays_cast as u32,
+            rays_obstructed: result.rays_obstructed as u32,
+        })
     }
 }

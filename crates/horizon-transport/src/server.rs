@@ -1,7 +1,7 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use horizon_api::SpatialService;
+use horizon_api::{SpatialComputeService, SpatialService};
 use horizon_proto::spatial_service_server::SpatialService as GrpcSpatialService;
 use horizon_proto::{
     AccessibilityRequest, AccessibilityResponse, IntersectRequest, IntersectResponse,
@@ -11,6 +11,7 @@ use tonic::{Request, Response, Status};
 use tracing::info;
 
 use crate::convert;
+use crate::spatial_compute_server;
 
 /// gRPC server configuration.
 #[derive(Debug, Clone)]
@@ -26,16 +27,28 @@ impl Default for TransportConfig {
     }
 }
 
+/// Registered gRPC service handles.
+pub struct TransportServices {
+    pub spatial: Arc<dyn SpatialService>,
+    pub compute: Arc<dyn SpatialComputeService>,
+}
+
 /// Start the gRPC server and block until shutdown.
 pub async fn serve(
     config: TransportConfig,
-    service: Arc<dyn SpatialService>,
+    services: TransportServices,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let grpc = GrpcSpatialServiceImpl { inner: service };
+    let spatial = GrpcSpatialServiceImpl {
+        inner: services.spatial,
+    };
+
     info!(addr = %config.listen_addr, "starting gRPC transport");
 
     tonic::transport::Server::builder()
-        .add_service(SpatialServiceServer::new(grpc))
+        .add_service(SpatialServiceServer::new(spatial))
+        .add_service(spatial_compute_server::spatial_compute_service(
+            services.compute,
+        ))
         .serve(config.listen_addr)
         .await?;
 

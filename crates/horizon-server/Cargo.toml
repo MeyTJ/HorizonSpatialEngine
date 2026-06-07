@@ -10,6 +10,7 @@ path = "src/main.rs"
 [dependencies]
 horizon-api = { workspace = true }
 horizon-core = { workspace = true }
+horizon-geometry = { workspace = true }
 horizon-transport = { workspace = true }
 horizon_topology = { workspace = true }
 tokio = { workspace = true }

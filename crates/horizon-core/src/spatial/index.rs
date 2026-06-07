@@ -81,6 +81,35 @@ impl SpatialIndex {
         self.buildings().get(feature_idx)
     }
 
+    /// Validate that a coordinate lies within the dataset header bounds.
+    #[instrument(skip(self), fields(x = coord.x, y = coord.y, z = coord.z))]
+    pub fn validate_in_dataset_bounds(
+        &self,
+        coord: horizon_geometry::Coordinate,
+    ) -> Result<(), CoreError> {
+        let header = &self.dataset.archived().header;
+        if coord.x < header.bounds_min.x
+            || coord.x > header.bounds_max.x
+            || coord.y < header.bounds_min.y
+            || coord.y > header.bounds_max.y
+        {
+            return Err(CoreError::OutOfBounds);
+        }
+        Ok(())
+    }
+
+    /// Validate all coastline vertices lie within dataset bounds.
+    #[instrument(skip(self, coastline))]
+    pub fn validate_coastline_in_bounds(
+        &self,
+        coastline: &horizon_geometry::LineString,
+    ) -> Result<(), CoreError> {
+        for point in &coastline.points {
+            self.validate_in_dataset_bounds(*point)?;
+        }
+        Ok(())
+    }
+
     /// Return indices of features whose XY envelope intersects `bounds`.
     #[instrument(skip(self), fields(
         min_x = bounds.min_x,

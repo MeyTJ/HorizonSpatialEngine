@@ -70,6 +70,7 @@ fn bounding_box(proto: BoundingBox) -> ApiBoundingBox {
 pub fn service_error(err: ServiceError) -> Status {
     match err {
         ServiceError::NotLoaded => Status::failed_precondition(err.to_string()),
+        ServiceError::OutOfBounds => Status::out_of_range(err.to_string()),
         ServiceError::InvalidRequest(_) => Status::invalid_argument(err.to_string()),
         ServiceError::LoadFailed(_) | ServiceError::Compute(_) => {
             Status::internal(err.to_string())

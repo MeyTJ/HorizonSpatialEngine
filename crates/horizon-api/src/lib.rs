@@ -1,13 +1,11 @@
-//! Transport-agnostic API boundary.
-//!
-//! The gRPC layer depends exclusively on this crate. It must never import
-//! `horizon-core`, `horizon-storage`, or `horizon-geometry` directly.
-
 mod dto;
 mod service;
+mod spatial_compute;
 
 pub use dto::{
-    AccessibilityRequest, AccessibilityResponse, BoundingBox, IntersectRequest,
+    AccessibilityRequest, AccessibilityResponse, ApiCoordinate, ApiLineString, BoundingBox,
+    CalculateHorizonAccessRequest, CalculateHorizonAccessResponse, IntersectRequest,
     IntersectResponse, LoadDatasetRequest, LoadDatasetResponse, ServiceError,
 };
 pub use service::SpatialService;
+pub use spatial_compute::SpatialComputeService;

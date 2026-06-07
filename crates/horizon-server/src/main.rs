@@ -3,9 +3,9 @@ mod adapter;
 use std::sync::Arc;
 
 use anyhow::Context;
-use horizon_api::SpatialService;
+use horizon_api::{SpatialComputeService, SpatialService};
 use horizon_topology::{connect, migrate, UrbanTopologyRepo};
-use horizon_transport::{serve, TransportConfig};
+use horizon_transport::{serve, TransportConfig, TransportServices};
 use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
@@ -44,10 +44,17 @@ async fn main() -> anyhow::Result<()> {
         .parse()
         .context("invalid HORIZON_LISTEN_ADDR")?;
 
-    let service: Arc<dyn SpatialService> = Arc::new(adapter::CoreAdapter::new());
+    let adapter = Arc::new(adapter::CoreAdapter::new());
 
     info!("HorizonSpatialEngine starting");
-    serve(TransportConfig { listen_addr }, service).await?;
+    serve(
+        TransportConfig { listen_addr },
+        TransportServices {
+            spatial: adapter.clone(),
+            compute: adapter,
+        },
+    )
+    .await?;
 
     Ok(())
 }

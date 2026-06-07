@@ -16,6 +16,9 @@ pub enum ServiceError {
 
     #[error("internal error: {0}")]
     Internal(String),
+
+    #[error("coordinates out of dataset bounds")]
+    OutOfBounds,
 }
 
 #[derive(Debug, Clone)]
@@ -64,4 +67,29 @@ pub struct AccessibilityResponse {
     pub visible_building_count: u64,
     pub skyline_obstruction_ratio: f64,
     pub mean_view_distance: f64,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ApiCoordinate {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+}
+
+#[derive(Debug, Clone)]
+pub struct ApiLineString {
+    pub points: Vec<ApiCoordinate>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CalculateHorizonAccessRequest {
+    pub viewpoint: ApiCoordinate,
+    pub target_coastline: ApiLineString,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct CalculateHorizonAccessResponse {
+    pub obstruction_percentage: f64,
+    pub rays_cast: u32,
+    pub rays_obstructed: u32,
 }

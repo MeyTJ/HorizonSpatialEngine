@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package horizon.spatial_compute.v1;
+
+option java_multiple_files = true;
+option java_package = "io.horizon.spatial_compute.v1";
+
+// Visual justice and spatial compute analytics.
+service SpatialComputeService {
+  rpc CalculateHorizonAccess(CalculateHorizonAccessRequest)
+      returns (CalculateHorizonAccessResponse);
+}
+
+message Coordinate {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+}
+
+message LineString {
+  repeated Coordinate points = 1;
+}
+
+message CalculateHorizonAccessRequest {
+  Coordinate viewpoint = 1;
+  LineString target_coastline = 2;
+}
+
+message CalculateHorizonAccessResponse {
+  double obstruction_percentage = 1;
+  uint32 rays_cast = 2;
+  uint32 rays_obstructed = 3;
+}
