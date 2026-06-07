@@ -12,6 +12,7 @@ horizon-geometry = { workspace = true }
 horizon-storage = { workspace = true }
 rstar = { workspace = true }
 rayon = { workspace = true }
+wide = { workspace = true }
 nalgebra = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }

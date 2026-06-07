@@ -15,4 +15,10 @@ pub enum CoreError {
 
     #[error("no dataset loaded")]
     NoDataset,
+
+    #[error("invalid coastline geometry: {0}")]
+    InvalidCoastline(String),
+
+    #[error("horizon blockage analysis failed: {0}")]
+    HorizonAnalysis(String),
 }

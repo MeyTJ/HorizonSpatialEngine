@@ -4,12 +4,16 @@
 //! buffers without heap allocation or deserialization copies.
 
 pub mod building;
+pub mod coordinate;
 pub mod dataset;
+pub mod line_string;
 pub mod point;
 pub mod polygon;
 
 pub use building::{ArchivedBuilding, Building};
+pub use coordinate::Coordinate;
 pub use dataset::{ArchivedUrbanDataset, UrbanDataset, UrbanDatasetHeader};
+pub use line_string::LineString;
 pub use point::{ArchivedPoint3, Point3};
 pub use polygon::{ArchivedPolygon, Polygon};
 

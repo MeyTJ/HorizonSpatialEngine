@@ -681,6 +681,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tracing",
+ "wide",
 ]
 
 [[package]]
