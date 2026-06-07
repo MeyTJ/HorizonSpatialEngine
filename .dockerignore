@@ -1,0 +1,14 @@
+target/
+**/*.rs.bk
+.git/
+.gitignore
+.env
+.env.*
+!.env.example
+*.md
+!README.md
+docker-compose.yml
+scripts/
+.idea/
+.vscode/
+**/mutants.out*/

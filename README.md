@@ -58,6 +58,31 @@ opt-level = 3
 HORIZON_LISTEN_ADDR=0.0.0.0:50051 cargo run -p horizon-server --release
 ```
 
+## Deployment
+
+Multi-stage Docker build with a distroless runtime:
+
+```bash
+docker build -t horizon-spatial-engine .
+docker run --rm -p 50051:50051 \
+  -e DATABASE_URL=postgres://horizon:horizon@host.docker.internal:5432/horizon_spatial \
+  -v /path/to/datasets:/data \
+  horizon-spatial-engine
+```
+
+Full stack (PostGIS + engine):
+
+```bash
+docker compose up -d --build
+```
+
+| Stage | Image | Purpose |
+|---|---|---|
+| Builder | `rust:1-bookworm` | `cargo build --release -p horizon-server` |
+| Runtime | `gcr.io/distroless/cc-debian12` | Minimal glibc runtime, non-root |
+
+The server uses **jemalloc** as the global allocator on Linux to reduce heap fragmentation during long-running spatial sessions.
+
 ## gRPC API
 
 Service: `horizon.spatial.v1.SpatialService`

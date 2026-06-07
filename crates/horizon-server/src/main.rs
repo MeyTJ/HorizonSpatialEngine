@@ -1,3 +1,7 @@
+#[cfg(all(target_os = "linux", not(target_env = "msvc")))]
+#[global_allocator]
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+
 mod adapter;
 
 use std::sync::Arc;
