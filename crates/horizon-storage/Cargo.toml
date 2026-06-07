@@ -1,0 +1,19 @@
+[package]
+name = "horizon-storage"
+description = "Memory-mapped zero-copy dataset ingestion for HorizonSpatialEngine"
+publish = false
+
+[lib]
+name = "horizon_storage"
+path = "src/lib.rs"
+
+[dependencies]
+horizon-geometry = { workspace = true }
+memmap2 = { workspace = true }
+rkyv = { workspace = true }
+bytecheck = { workspace = true }
+thiserror = { workspace = true }
+
+[features]
+default = []
+validation = ["rkyv/bytecheck", "horizon-geometry/validation"]

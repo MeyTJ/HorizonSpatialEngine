@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package horizon.spatial.v1;
+
+option java_multiple_files = true;
+option java_package = "io.horizon.spatial.v1";
+
+// Spatial compute service — wire format only; no compute logic.
+service SpatialService {
+  rpc LoadDataset(LoadDatasetRequest) returns (LoadDatasetResponse);
+  rpc Intersect(IntersectRequest) returns (IntersectResponse);
+  rpc Accessibility(AccessibilityRequest) returns (AccessibilityResponse);
+}
+
+message BoundingBox {
+  double min_x = 1;
+  double min_y = 2;
+  double max_x = 3;
+  double max_y = 4;
+  double min_z = 5;
+  double max_z = 6;
+}
+
+message LoadDatasetRequest {
+  string path = 1;
+}
+
+message LoadDatasetResponse {
+  uint64 building_count = 1;
+  string path = 2;
+}
+
+message IntersectRequest {
+  BoundingBox bounds = 1;
+}
+
+message IntersectResponse {
+  repeated uint64 building_ids = 1;
+  uint64 matched_count = 2;
+  double query_area = 3;
+}
+
+message AccessibilityRequest {
+  double observer_x = 1;
+  double observer_y = 2;
+  double observer_z = 3;
+  double radius = 4;
+}
+
+message AccessibilityResponse {
+  uint64 visible_building_count = 1;
+  double skyline_obstruction_ratio = 2;
+  double mean_view_distance = 3;
+}

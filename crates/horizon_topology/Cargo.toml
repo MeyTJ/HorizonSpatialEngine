@@ -1,0 +1,23 @@
+[package]
+name = "horizon_topology"
+description = "PostGIS-backed urban topology repository for HorizonSpatialEngine"
+edition.workspace = true
+version.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+publish = false
+
+[lib]
+name = "horizon_topology"
+path = "src/lib.rs"
+
+[dependencies]
+horizon-geometry = { workspace = true }
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+
+[features]
+default = []

@@ -1,0 +1,20 @@
+[package]
+name = "horizon-geometry"
+description = "Zero-copy urban geometry types for HorizonSpatialEngine"
+readme = "README.md"
+publish = false
+
+[package.metadata.docs.rs]
+all-features = true
+
+[lib]
+name = "horizon_geometry"
+path = "src/lib.rs"
+
+[dependencies]
+rkyv = { workspace = true }
+bytecheck = { workspace = true }
+
+[features]
+default = []
+validation = ["rkyv/bytecheck"]

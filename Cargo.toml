@@ -1,0 +1,77 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/horizon-geometry",
+    "crates/horizon-storage",
+    "crates/horizon-core",
+    "crates/horizon-api",
+    "crates/horizon-proto",
+    "crates/horizon-transport",
+    "crates/horizon_topology",
+    "crates/horizon-server",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.78"
+license = "MIT OR Apache-2.0"
+authors = ["HorizonSpatialEngine Contributors"]
+repository = "https://github.com/HorizonSpatialEngine/HorizonSpatialEngine"
+
+[workspace.dependencies]
+# Zero-copy serialization
+rkyv = { version = "0.8", features = ["bytecheck"] }
+bytecheck = "0.8"
+
+# Memory-mapped I/O
+memmap2 = "0.9"
+
+# Spatial compute
+rstar = "0.12"
+nalgebra = { version = "0.33", default-features = false, features = ["std"] }
+
+# Async runtime & gRPC transport (transport layer only)
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal"] }
+tonic = "0.12"
+prost = "0.13"
+tonic-build = "0.12"
+
+# Error handling & logging
+thiserror = "2"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# PostGIS / sqlx
+sqlx = { version = "0.8", default-features = false, features = [
+    "runtime-tokio-rustls",
+    "postgres",
+    "macros",
+    "migrate",
+] }
+
+# Internal crates
+horizon-geometry = { path = "crates/horizon-geometry" }
+horizon-storage = { path = "crates/horizon-storage" }
+horizon-core = { path = "crates/horizon-core" }
+horizon-api = { path = "crates/horizon-api" }
+horizon-proto = { path = "crates/horizon-proto" }
+horizon-transport = { path = "crates/horizon-transport" }
+horizon_topology = { path = "crates/horizon_topology" }
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
+strip = true
+
+[profile.release-with-debug]
+inherits = "release"
+strip = false
+debug = true
+
+[profile.bench]
+lto = true
+codegen-units = 1
+opt-level = 3

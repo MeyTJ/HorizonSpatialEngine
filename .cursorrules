@@ -1,0 +1,8 @@
+# HorizonSpatialEngine Architect Rules
+- **Language**: Rust (Lts Version).
+- **Naming Conventions**: Strict `PascalCase` for structs/traits. Strict `snake_case` for variables/modules. **NEVER use dash-separated suffixes in crate or folder names.**
+- **Memory Safety**: Maximize zero-copy deserialization using `rkyv`. Avoid `.clone()` on hot paths. 
+- **Concurrency**: Prefer `rayon` for parallel iteration. Use `Arc<RwLock<T>>` for shared state, but strictly avoid locking during heavy geometric calculations.
+- **Database**: Use `sqlx` (compile-time verified queries) for PostGIS integrations.
+- **Error Handling**: Use `thiserror` for domain errors and `anyhow` for application boundaries. Never use `.unwrap()` or `.expect()` in production code.
+- **Observability**: All public functions must be instrumented with `#[tracing::instrument]`.

@@ -1,0 +1,3 @@
+[sqlx]
+# Offline query verification — run `cargo sqlx prepare` after schema changes.
+offline = true

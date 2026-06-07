@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t.id, t.neighborhood_name, ST_XMin(ST_Envelope(t.footprint)) AS \"bbox_min_x!\", ST_YMin(ST_Envelope(t.footprint)) AS \"bbox_min_y!\", t.elevation_min AS \"bbox_min_z!\", ST_XMax(ST_Envelope(t.footprint)) AS \"bbox_max_x!\", ST_YMax(ST_Envelope(t.footprint)) AS \"bbox_max_y!\", t.elevation_max AS \"bbox_max_z!\", ST_AsEWKB(t.footprint) AS \"footprint_wkb!\" FROM urban_topology AS t WHERE t.neighborhood_name = $1 AND ST_Intersects( t.footprint, ST_MakeEnvelope($2, $3, $4, $5, $6) ) ORDER BY t.id",
+  "describe": {
+    "columns": [
+      { "ordinal": 0, "name": "id", "type_info": "Int8" },
+      { "ordinal": 1, "name": "neighborhood_name", "type_info": "Text" },
+      { "ordinal": 2, "name": "bbox_min_x!", "type_info": "Float8" },
+      { "ordinal": 3, "name": "bbox_min_y!", "type_info": "Float8" },
+      { "ordinal": 4, "name": "bbox_min_z!", "type_info": "Float8" },
+      { "ordinal": 5, "name": "bbox_max_x!", "type_info": "Float8" },
+      { "ordinal": 6, "name": "bbox_max_y!", "type_info": "Float8" },
+      { "ordinal": 7, "name": "bbox_max_z!", "type_info": "Float8" },
+      { "ordinal": 8, "name": "footprint_wkb!", "type_info": "Bytea" }
+    ],
+    "parameters": {
+      "Left": ["Text", "Float8", "Float8", "Float8", "Float8", "Int4"]
+    },
+    "nullable": [false, false, false, false, false, false, false, false, false]
+  }
+}

@@ -1,0 +1,23 @@
+[package]
+name = "horizon-core"
+description = "Spatial compute engine for HorizonSpatialEngine"
+publish = false
+
+[lib]
+name = "horizon_core"
+path = "src/lib.rs"
+
+[dependencies]
+horizon-geometry = { workspace = true }
+horizon-storage = { workspace = true }
+rstar = { workspace = true }
+nalgebra = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[features]
+default = []
+validation = ["horizon-storage/validation"]
+
+[dev-dependencies]
+rkyv = { workspace = true }

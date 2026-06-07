@@ -1,0 +1,23 @@
+[package]
+name = "horizon-server"
+description = "HorizonSpatialEngine service binary"
+publish = false
+
+[[bin]]
+name = "horizon-server"
+path = "src/main.rs"
+
+[dependencies]
+horizon-api = { workspace = true }
+horizon-core = { workspace = true }
+horizon-transport = { workspace = true }
+horizon_topology = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+async-trait = "0.1"
+
+[features]
+default = []
+validation = ["horizon-core/validation"]
