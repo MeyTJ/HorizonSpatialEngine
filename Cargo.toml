@@ -29,6 +29,7 @@ memmap2 = "0.9"
 
 # Spatial compute
 rstar = "0.12"
+rayon = "1.10"
 nalgebra = { version = "0.33", default-features = false, features = ["std"] }
 
 # Async runtime & gRPC transport (transport layer only)

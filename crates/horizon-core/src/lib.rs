@@ -8,7 +8,7 @@ mod error;
 mod query;
 mod spatial;
 
-pub use engine::SpatialEngine;
+pub use engine::{QueryResult, SpatialEngine};
 pub use error::CoreError;
 pub use query::{AccessibilityResult, IntersectionResult, QueryBounds, SpatialQuery};
-pub use spatial::BuildingIndex;
+pub use spatial::{SharedSpatialIndex, SpatialEntry, SpatialIndex};

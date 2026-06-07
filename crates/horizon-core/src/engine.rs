@@ -1,40 +1,37 @@
-use std::path::Path;
+use std::sync::Arc;
 
-use horizon_storage::{MappedDataset, MmapLoader};
-use tracing::{info, instrument};
+use tracing::instrument;
 
 use crate::error::CoreError;
 use crate::query::{AccessibilityResult, IntersectionResult, QueryBounds, SpatialQuery};
-use crate::spatial::BuildingIndex;
+use crate::spatial::{SharedSpatialIndex, SpatialIndex};
 
-/// Primary compute engine — owns the memory-mapped dataset and spatial index.
+/// Primary compute engine — delegates spatial queries to a shared index handle.
 pub struct SpatialEngine {
-    dataset: MappedDataset,
-    index: BuildingIndex,
+    index: SharedSpatialIndex,
 }
 
 impl SpatialEngine {
     #[instrument(skip_all, fields(path = %path.as_ref().display()))]
-    pub fn open(path: impl AsRef<Path>) -> Result<Self, CoreError> {
-        let dataset = MmapLoader::load(path)?;
-        let buildings = dataset.archived().buildings.as_slice();
-        let index = BuildingIndex::build(buildings);
+    pub fn open(path: impl AsRef<std::path::Path>) -> Result<Self, CoreError> {
+        let index = SpatialIndex::open(path)?;
+        Ok(Self { index })
+    }
 
-        info!(
-            buildings = index.building_count(),
-            path = %dataset.path().display(),
-            "dataset loaded via memory-map"
-        );
+    pub fn from_index(index: SharedSpatialIndex) -> Self {
+        Self { index }
+    }
 
-        Ok(Self { dataset, index })
+    pub fn index(&self) -> SharedSpatialIndex {
+        Arc::clone(&self.index)
     }
 
     pub fn building_count(&self) -> usize {
-        self.index.building_count()
+        self.index.feature_count()
     }
 
-    pub fn dataset_path(&self) -> &Path {
-        self.dataset.path()
+    pub fn dataset_path(&self) -> &std::path::Path {
+        self.index.dataset_path()
     }
 
     pub fn execute(&self, query: SpatialQuery) -> Result<QueryResult, CoreError> {
@@ -57,14 +54,7 @@ impl SpatialEngine {
     }
 
     fn intersect(&self, bounds: QueryBounds) -> Result<IntersectionResult, CoreError> {
-        let indices = self.index.query_intersects(&bounds);
-        let buildings = self.dataset.archived().buildings.as_slice();
-
-        let building_ids: Vec<u64> = indices
-            .iter()
-            .filter_map(|&idx| buildings.get(idx).map(|b| b.id))
-            .collect();
-
+        let building_ids = self.index.query_building_ids(&bounds);
         Ok(IntersectionResult {
             matched_count: building_ids.len(),
             building_ids,
@@ -87,14 +77,12 @@ impl SpatialEngine {
         )
         .with_elevation(observer_z, observer_z + 500.0);
 
-        let indices = self.index.query_intersects(&bounds);
-        let buildings = self.dataset.archived().buildings.as_slice();
-
+        let buildings = self.index.buildings();
         let mut visible = 0usize;
         let mut total_distance = 0.0f64;
         let mut obstructed = 0usize;
 
-        for &idx in &indices {
+        for idx in self.index.query_intersects(&bounds) {
             let Some(building) = buildings.get(idx) else {
                 continue;
             };

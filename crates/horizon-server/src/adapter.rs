@@ -1,36 +1,37 @@
 use std::path::PathBuf;
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
 
 use async_trait::async_trait;
 use horizon_api::{
     AccessibilityRequest, AccessibilityResponse, IntersectRequest, IntersectResponse,
     LoadDatasetRequest, LoadDatasetResponse, ServiceError, SpatialService,
 };
-use horizon_core::{QueryBounds, SpatialEngine, SpatialQuery};
+use horizon_core::{QueryBounds, SharedSpatialIndex, SpatialEngine, SpatialIndex, SpatialQuery};
+use tracing::instrument;
 
 /// Bridges the compute core to the transport-agnostic API boundary.
 pub struct CoreAdapter {
-    engine: RwLock<Option<SpatialEngine>>,
+    index: RwLock<Option<SharedSpatialIndex>>,
 }
 
 impl CoreAdapter {
     pub fn new() -> Self {
         Self {
-            engine: RwLock::new(None),
+            index: RwLock::new(None),
         }
     }
 
-    fn with_engine<F, T>(&self, f: F) -> Result<T, ServiceError>
-    where
-        F: FnOnce(&SpatialEngine) -> Result<T, ServiceError>,
-    {
+    /// Clone the shared index handle and release the lock before querying.
+    fn snapshot(&self) -> Result<SharedSpatialIndex, ServiceError> {
         let guard = self
-            .engine
+            .index
             .read()
-            .map_err(|_| ServiceError::Internal("engine lock poisoned".into()))?;
+            .map_err(|_| ServiceError::Internal("index lock poisoned".into()))?;
 
-        let engine = guard.as_ref().ok_or(ServiceError::NotLoaded)?;
-        f(engine)
+        guard
+            .as_ref()
+            .map(Arc::clone)
+            .ok_or(ServiceError::NotLoaded)
     }
 }
 
@@ -42,6 +43,7 @@ impl Default for CoreAdapter {
 
 #[async_trait]
 impl SpatialService for CoreAdapter {
+    #[instrument(skip(self))]
     async fn load_dataset(
         &self,
         request: LoadDatasetRequest,
@@ -51,22 +53,23 @@ impl SpatialService for CoreAdapter {
             return Err(ServiceError::InvalidRequest("path must not be empty".into()));
         }
 
-        let engine = SpatialEngine::open(&path).map_err(|e| ServiceError::LoadFailed(e.to_string()))?;
+        let index = SpatialIndex::open(&path).map_err(|e| ServiceError::LoadFailed(e.to_string()))?;
 
         let response = LoadDatasetResponse {
-            building_count: engine.building_count() as u64,
+            building_count: index.feature_count() as u64,
             path: request.path,
         };
 
         let mut guard = self
-            .engine
+            .index
             .write()
-            .map_err(|_| ServiceError::Internal("engine lock poisoned".into()))?;
-        *guard = Some(engine);
+            .map_err(|_| ServiceError::Internal("index lock poisoned".into()))?;
+        *guard = Some(index);
 
         Ok(response)
     }
 
+    #[instrument(skip(self))]
     async fn intersect(
         &self,
         request: IntersectRequest,
@@ -79,22 +82,23 @@ impl SpatialService for CoreAdapter {
         )
         .with_elevation(request.bounds.min_z, request.bounds.max_z);
 
-        self.with_engine(|engine| {
-            let result = engine
-                .execute(SpatialQuery::Intersect(bounds))
-                .map_err(|e| ServiceError::Compute(e.to_string()))?;
+        let index = self.snapshot()?;
+        let engine = SpatialEngine::from_index(index);
+        let result = engine
+            .execute(SpatialQuery::Intersect(bounds))
+            .map_err(|e| ServiceError::Compute(e.to_string()))?;
 
-            match result {
-                horizon_core::QueryResult::Intersection(r) => Ok(IntersectResponse {
-                    building_ids: r.building_ids,
-                    matched_count: r.matched_count as u64,
-                    query_area: r.query_area,
-                }),
-                _ => Err(ServiceError::Internal("unexpected query result".into())),
-            }
-        })
+        match result {
+            horizon_core::QueryResult::Intersection(r) => Ok(IntersectResponse {
+                building_ids: r.building_ids,
+                matched_count: r.matched_count as u64,
+                query_area: r.query_area,
+            }),
+            _ => Err(ServiceError::Internal("unexpected query result".into())),
+        }
     }
 
+    #[instrument(skip(self))]
     async fn accessibility(
         &self,
         request: AccessibilityRequest,
@@ -103,24 +107,24 @@ impl SpatialService for CoreAdapter {
             return Err(ServiceError::InvalidRequest("radius must be positive".into()));
         }
 
-        self.with_engine(|engine| {
-            let result = engine
-                .execute(SpatialQuery::Accessibility {
-                    observer_x: request.observer_x,
-                    observer_y: request.observer_y,
-                    observer_z: request.observer_z,
-                    radius: request.radius,
-                })
-                .map_err(|e| ServiceError::Compute(e.to_string()))?;
+        let index = self.snapshot()?;
+        let engine = SpatialEngine::from_index(index);
+        let result = engine
+            .execute(SpatialQuery::Accessibility {
+                observer_x: request.observer_x,
+                observer_y: request.observer_y,
+                observer_z: request.observer_z,
+                radius: request.radius,
+            })
+            .map_err(|e| ServiceError::Compute(e.to_string()))?;
 
-            match result {
-                horizon_core::QueryResult::Accessibility(r) => Ok(AccessibilityResponse {
-                    visible_building_count: r.visible_building_count as u64,
-                    skyline_obstruction_ratio: r.skyline_obstruction_ratio,
-                    mean_view_distance: r.mean_view_distance,
-                }),
-                _ => Err(ServiceError::Internal("unexpected query result".into())),
-            }
-        })
+        match result {
+            horizon_core::QueryResult::Accessibility(r) => Ok(AccessibilityResponse {
+                visible_building_count: r.visible_building_count as u64,
+                skyline_obstruction_ratio: r.skyline_obstruction_ratio,
+                mean_view_distance: r.mean_view_distance,
+            }),
+            _ => Err(ServiceError::Internal("unexpected query result".into())),
+        }
     }
 }
